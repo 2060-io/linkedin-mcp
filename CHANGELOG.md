@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/2060-io/linkedin-mcp/compare/v0.1.1...v0.1.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* redme ([f75f369](https://github.com/2060-io/linkedin-mcp/commit/f75f3693f31054dfd674c181b057eafe47b59969))
+* redme ([f7f2ed3](https://github.com/2060-io/linkedin-mcp/commit/f7f2ed3274e4c5c387154cccc876e833de52d3b7))
+
 ## [0.1.1](https://github.com/2060-io/linkedin-mcp/compare/v0.1.0...v0.1.1) (2026-06-22)
 
 
