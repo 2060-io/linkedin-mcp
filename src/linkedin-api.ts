@@ -237,6 +237,38 @@ export class LinkedInApiClient {
       throw new Error(`uploadImage PUT failed (HTTP ${put.status}): ${text.slice(0, 300)}`);
     }
 
+    // LinkedIn processes the upload asynchronously. Referencing the image in a post
+    // before it is AVAILABLE produces a share that renders "This post cannot be
+    // displayed", so wait for processing to finish before returning the URN.
+    await this.waitForImageAvailable(value.image);
+
     return { image_urn: value.image };
+  }
+
+  /**
+   * Poll an image's processing status until it is AVAILABLE. Throws on a terminal
+   * failure or if processing does not complete within the timeout, so callers never
+   * publish a post that references an unprocessed image.
+   */
+  private async waitForImageAvailable(
+    imageUrn: string,
+    { attempts = 30, intervalMs = 1000 }: { attempts?: number; intervalMs?: number } = {},
+  ): Promise<void> {
+    for (let i = 0; i < attempts; i++) {
+      const res = await this.request(
+        `${this.restBase}/images/${encodeUrn(imageUrn)}`,
+        "GET",
+        "getImage",
+      );
+      const status = (res.body as { status?: string } | undefined)?.status;
+      if (status === "AVAILABLE") return;
+      if (status && status !== "PROCESSING" && status !== "WAITING_UPLOAD") {
+        throw new Error(`Image processing failed for ${imageUrn} (status: ${status}).`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+    throw new Error(
+      `Image ${imageUrn} was not ready after ${attempts}s. Aborted to avoid an unrenderable post; try again.`,
+    );
   }
 }
