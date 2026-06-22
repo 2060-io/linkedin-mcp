@@ -1,0 +1,7 @@
+node_modules
+dist
+.git
+.env
+linkedin-mcp-state.json
+*.log
+.DS_Store
