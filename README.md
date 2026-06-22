@@ -3,8 +3,7 @@
 An MCP (Model Context Protocol) server that lets AI agents **publish to LinkedIn** as
 the authenticated member — text posts, link shares, single/multi-image posts, reshares,
 comments, and reactions — with built-in safety rails for autonomous operation: daily
-budget limits, engagement deduplication, compact TOON-encoded responses, and
-self-describing errors with typo suggestions.
+budget limits, engagement deduplication, compact TOON-encoded responses, and self-describing errors with typo suggestions.
 
 Authentication is **OAuth 2.0 (3-legged)** with a **cluster-hosted callback** protected
 by HTTP Basic Auth, so you never have to copy tokens onto a server by hand. Tokens,
