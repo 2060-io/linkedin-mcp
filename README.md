@@ -10,7 +10,7 @@ by HTTP Basic Auth, so you never have to copy tokens onto a server by hand. Toke
 budgets, and dedup state live in a single JSON file you can back with a Kubernetes PVC.
 
 Works with **Claude Code**, **Claude Desktop**, **OpenAI Codex**, **Cursor**,
-**Windsurf**, **Cline**, and any other MCP-compatible client.
+**Windsurf**, **Cline**, and any other MCP-compatible client — run it locally or via Docker.
 
 > **Scope (Phase 1).** LinkedIn's public API only allows **member write** actions plus
 > reading your own profile. There is **no** public API to read the feed, search posts,
