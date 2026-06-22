@@ -1,0 +1,70 @@
+nameOverride: 'linkedin-mcp'
+
+image:
+  repository: io2060/linkedin-mcp
+  # Tag defaults to Chart.Version if not specified
+  tag: ""
+
+replicas: 1
+
+# Persistent state (OAuth tokens, budget counters, engagement dedup).
+# REQUIRED for unattended operation: the state file is the source of truth for
+# the member's OAuth tokens written by /oauth/callback and refreshed at runtime.
+# Without it, a restart loses tokens (forcing re-auth) and resets budgets/dedup.
+# State is a per-pod file with no shared locking -> single replica only; the
+# Deployment uses the Recreate strategy so a rolling update never runs two pods
+# against the same RWO volume.
+persistence:
+  enabled: true
+  mountPath: /data
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  # Leave empty to use the cluster default StorageClass.
+  storageClass: ""
+
+resources:
+  requests:
+    cpu: '100m'
+    memory: '256Mi'
+  limits:
+    cpu: '500m'
+    memory: '512Mi'
+
+service:
+  type: ClusterIP
+  port: 8000
+
+env:
+  - name: MCP_TRANSPORT
+    value: 'http'
+  - name: LINKEDIN_API_VERSION
+    value: '202506'
+  # MUST equal a Redirect URL on the LinkedIn app: https://<public-host>/oauth/callback
+  - name: LINKEDIN_REDIRECT_URI
+    value: ''
+  # JSON output for programmatic use (disable TOON)
+  - name: LI_MCP_TOON
+    value: 'false'
+  - name: LI_MCP_COMPACT
+    value: 'true'
+  - name: LI_MCP_DEDUP
+    value: 'true'
+  # Safety rails — LinkedIn's own member ceiling is low, keep these conservative.
+  - name: LI_MCP_MAX_POSTS
+    value: '5'
+  - name: LI_MCP_MAX_COMMENTS
+    value: '10'
+  - name: LI_MCP_MAX_REACTIONS
+    value: '30'
+  - name: LI_MCP_MAX_DELETES
+    value: '3'
+
+# Secret-managed values — stored in a Kubernetes Secret created by this chart.
+# Set these per-deployment (e.g. via --set or a values override). Includes the
+# LinkedIn app credentials and the Basic Auth credentials guarding /oauth/*.
+# secret:
+#   LINKEDIN_CLIENT_ID: 'your-client-id'
+#   LINKEDIN_CLIENT_SECRET: 'your-client-secret'
+#   LI_MCP_ADMIN_USER: 'admin'
+#   LI_MCP_ADMIN_PASSWORD: 'a-strong-password'
+secret: {}

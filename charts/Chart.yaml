@@ -1,0 +1,5 @@
+apiVersion: v2
+name: linkedin-mcp-chart
+version: 0.1.0
+appVersion: '0.1.0'
+description: Helm chart to deploy linkedin-mcp as an HTTP MCP server with PVC-backed token state

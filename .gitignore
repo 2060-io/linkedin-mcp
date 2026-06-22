@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+
+# Local secrets and state
+.env
+linkedin-mcp-state.json
+*.tmp
+
+# OS / editor
+.DS_Store

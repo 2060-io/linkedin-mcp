@@ -1,0 +1,131 @@
+{{- if .Values.secret }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "lkdn.fullname" . }}-secret
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+stringData:
+  {{- range $key, $val := .Values.secret }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lkdn.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "lkdn.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
+      name: http
+  selector:
+    app.kubernetes.io/component: linkedin-mcp
+    {{- include "lkdn.selectorLabels" . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lkdn.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: linkedin-mcp
+    {{- include "lkdn.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  {{- if .Values.persistence.enabled }}
+  # State (incl. OAuth tokens) is a per-pod file on an RWO volume — never run two pods at once.
+  strategy:
+    type: Recreate
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: linkedin-mcp
+      {{- include "lkdn.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: linkedin-mcp
+        {{- include "lkdn.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: linkedin-mcp
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.Version }}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: {{ .Values.service.port }}
+              name: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          env:
+            {{- range .Values.env }}
+            - name: {{ .name }}
+              {{- if .valueFrom }}
+              valueFrom:
+                {{- toYaml .valueFrom | nindent 16 }}
+              {{- else }}
+              value: {{ .value | quote }}
+              {{- end }}
+            {{- end }}
+            {{- range $key, $val := .Values.secret }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "lkdn.fullname" $ }}-secret
+                  key: {{ $key }}
+            {{- end }}
+            {{- if .Values.persistence.enabled }}
+            - name: LI_MCP_STATE_FILE
+              value: {{ printf "%s/linkedin-mcp-state.json" .Values.persistence.mountPath | quote }}
+            {{- end }}
+          {{- if .Values.persistence.enabled }}
+          volumeMounts:
+            - name: state
+              mountPath: {{ .Values.persistence.mountPath }}
+          {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: {{ include "lkdn.fullname" . }}-state
+      {{- end }}
+{{- if .Values.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "lkdn.fullname" . }}-state
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "lkdn.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass }}
+  {{- end }}
+{{- end }}
