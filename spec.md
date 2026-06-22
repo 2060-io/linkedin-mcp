@@ -161,7 +161,23 @@ report on tokens that post as the member, so they are protected:
 ```
 
 Image/video/multi-image/reshare add a `content` block referencing uploaded media URNs or a
-`reshareContext`. Mentions/hashtags use entity URNs with character ranges in `commentary`.
+`reshareContext`.
+
+### Text formatting (Little Text)
+
+LinkedIn parses `commentary` as **Little Text**, not plain text. The server formats user
+text in `toLittleText` (`src/linkedin-api.ts`) before sending:
+
+- **Reserved characters must be backslash-escaped:** `\ | { } @ [ ] ( ) < > # * _ ~`.
+  An *unescaped* reserved character silently **truncates the post** — e.g. a literal `(`
+  drops everything after it. (`JSON.stringify` adds the second backslash on the wire.)
+- **Hashtags** are kept as plain `#word` elements (escaping is skipped for a `#` that
+  begins a hashtag) so they render as clickable hashtags.
+- **Do not** use `{hashtag|#|tag}` templates for member posts — a malformed template
+  invalidates the whole string and LinkedIn renders the raw escaped text instead.
+- Image processing is asynchronous: `uploadImage` polls `GET /rest/images/{urn}` until the
+  asset is `AVAILABLE` before a post references it, otherwise the post renders as
+  "This post cannot be displayed".
 
 ## Safety Features
 

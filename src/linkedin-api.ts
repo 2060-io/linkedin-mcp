@@ -4,6 +4,38 @@ import type { UserInfo } from "./oauth.js";
 const DEFAULT_API_BASE = "https://api.linkedin.com";
 const RESTLI_VERSION = "2.0.0";
 
+// LinkedIn parses post `commentary` as "Little Text": these reserved characters
+// must be backslash-escaped, or content is silently truncated at the character
+// (e.g. an unescaped "(" drops everything after it). JSON.stringify adds the
+// second backslash on the wire.
+const LITTLE_TEXT_RESERVED = /[\\|{}@[\]()<>#*_~]/g;
+
+function escapeLittleText(s: string): string {
+  return s.replace(LITTLE_TEXT_RESERVED, (c) => `\\${c}`);
+}
+
+/**
+ * Format plain user text as LinkedIn "Little Text": escape every reserved
+ * character so the post isn't truncated, while leaving `#hashtags` as plain
+ * hashtag elements so they remain clickable. (Do NOT use `{hashtag|#|tag}`
+ * templates here — a malformed template invalidates the whole string and makes
+ * LinkedIn render the raw escaped text.)
+ */
+export function toLittleText(input: string): string {
+  let out = "";
+  let last = 0;
+  const hashtag = /(^|\s)#([A-Za-z0-9]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = hashtag.exec(input)) !== null) {
+    out += escapeLittleText(input.slice(last, m.index));
+    out += m[1]; // boundary (start or whitespace), never a reserved char
+    out += `#${m[2]}`; // valid HashtagElement, left unescaped to stay clickable
+    last = hashtag.lastIndex;
+  }
+  out += escapeLittleText(input.slice(last));
+  return out;
+}
+
 export type Visibility = "PUBLIC" | "CONNECTIONS" | "LOGGED_IN";
 export type ReactionType =
   | "LIKE"
@@ -120,7 +152,7 @@ export class LinkedInApiClient {
   async createPost(params: CreatePostParams): Promise<{ id: string; author: string }> {
     const body: Record<string, unknown> = {
       author: params.authorUrn,
-      commentary: params.commentary,
+      commentary: toLittleText(params.commentary),
       visibility: params.visibility ?? "PUBLIC",
       distribution: {
         feedDistribution: "MAIN_FEED",
@@ -237,6 +269,38 @@ export class LinkedInApiClient {
       throw new Error(`uploadImage PUT failed (HTTP ${put.status}): ${text.slice(0, 300)}`);
     }
 
+    // LinkedIn processes the upload asynchronously. Referencing the image in a post
+    // before it is AVAILABLE produces a share that renders "This post cannot be
+    // displayed", so wait for processing to finish before returning the URN.
+    await this.waitForImageAvailable(value.image);
+
     return { image_urn: value.image };
+  }
+
+  /**
+   * Poll an image's processing status until it is AVAILABLE. Throws on a terminal
+   * failure or if processing does not complete within the timeout, so callers never
+   * publish a post that references an unprocessed image.
+   */
+  private async waitForImageAvailable(
+    imageUrn: string,
+    { attempts = 30, intervalMs = 1000 }: { attempts?: number; intervalMs?: number } = {},
+  ): Promise<void> {
+    for (let i = 0; i < attempts; i++) {
+      const res = await this.request(
+        `${this.restBase}/images/${encodeUrn(imageUrn)}`,
+        "GET",
+        "getImage",
+      );
+      const status = (res.body as { status?: string } | undefined)?.status;
+      if (status === "AVAILABLE") return;
+      if (status && status !== "PROCESSING" && status !== "WAITING_UPLOAD") {
+        throw new Error(`Image processing failed for ${imageUrn} (status: ${status}).`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+    throw new Error(
+      `Image ${imageUrn} was not ready after ${attempts}s. Aborted to avoid an unrenderable post; try again.`,
+    );
   }
 }
