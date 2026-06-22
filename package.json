@@ -1,6 +1,6 @@
 {
   "name": "linkedin-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Autonomous MCP server for the LinkedIn API — member publishing with budget limits, dedup, compact responses, and cluster-hosted OAuth",
   "type": "module",
   "main": "dist/index.js",
