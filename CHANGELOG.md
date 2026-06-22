@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/2060-io/linkedin-mcp/compare/v0.1.2...v0.1.3) (2026-06-22)
+
+
+### Bug Fixes
+
+* note Docker support on README clients line ([f32670a](https://github.com/2060-io/linkedin-mcp/commit/f32670a97dfa89571233e6fa497374ef685d6d2d))
+* note Docker support on README clients line ([81b65d0](https://github.com/2060-io/linkedin-mcp/commit/81b65d0c3be9fa884bf7274094d3847e196ce5cf))
+
 ## [0.1.2](https://github.com/2060-io/linkedin-mcp/compare/v0.1.1...v0.1.2) (2026-06-22)
 
 
