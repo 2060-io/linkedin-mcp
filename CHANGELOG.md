@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.4](https://github.com/2060-io/linkedin-mcp/compare/v0.1.3...v0.1.4) (2026-06-22)
+
+
+### Bug Fixes
+
+* build multi-arch Docker images on native runners ([89c1d57](https://github.com/2060-io/linkedin-mcp/commit/89c1d578a8720a1ecacb7362aee7fd3445f05b71))
+* build multi-arch Docker images on native runners ([d89b6c7](https://github.com/2060-io/linkedin-mcp/commit/d89b6c74831ad3299948503782836e25e235e14a))
+
 ## [0.1.3](https://github.com/2060-io/linkedin-mcp/compare/v0.1.2...v0.1.3) (2026-06-22)
 
 
