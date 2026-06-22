@@ -73,6 +73,17 @@ save tokens. Set `LI_MCP_TOON=false` for JSON, `LI_MCP_COMPACT=false` to keep fu
 Tools validate parameters and return actionable hints with fuzzy-matched suggestions for
 typos, so the LLM learns from mistakes instead of getting opaque errors.
 
+### Text formatting (automatic)
+
+You pass post text as **plain text** — the server handles LinkedIn's quirks for you:
+
+- LinkedIn parses `commentary` as **"Little Text"**, where `\ | { } @ [ ] ( ) < > # * _ ~`
+  are reserved. An unescaped one (notably `(`) **silently truncates** the post. The server
+  escapes them automatically.
+- `#hashtags` are preserved as clickable hashtags.
+- Images are only attached once LinkedIn finishes processing them, so posts never render as
+  "This post cannot be displayed".
+
 ---
 
 ## Setup
